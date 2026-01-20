@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: share-id
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: share-id
+  template:
+    metadata:
+      labels:
+        app: share-id
+    spec:
+      containers:
+        - name: share-id
+          image: ghcr.io/your-org/share-id:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PORT
+              value: "5000"
+            - name: DATA_DIR
+              value: /data
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: share-id
+spec:
+  selector:
+    app: share-id
+  ports:
+    - port: 80
+      targetPort: 5000
+      protocol: TCP
+  type: ClusterIP

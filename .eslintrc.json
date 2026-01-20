@@ -1,0 +1,17 @@
+{
+  "env": {
+    "browser": true,
+    "es2022": true,
+    "node": true
+  },
+  "extends": [
+    "standard"
+  ],
+  "parserOptions": {
+    "sourceType": "module"
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules"
+  ]
+}
