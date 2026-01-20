@@ -14,12 +14,16 @@ spec:
     spec:
       containers:
       - name: share-app
-        image: yourdockerhub/share-app:latest # Změň na svůj image
+        image: ghcr.io/fpluske/3--os--pololetni-projekt/share-app:latest
         ports:
         - containerPort: 5000
         volumeMounts:
         - name: uploads
           mountPath: /app/uploads
+      imagePullSecrets:
+      - name: ghcr-secret
+      imagePullSecrets:
+      - name: ghcr-secret
       volumes:
       - name: uploads
         persistentVolumeClaim:
