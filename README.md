@@ -1,43 +1,29 @@
-# Share-ID
+# Jednoduchá aplikace pro sdílení souborů, textu a obrázků
 
-Jednoduchá webová aplikace pro sdílení textu, souborů a obrázků pomocí share-id (zadáš vlastní nebo necháš vygenerovat).
+## Lokální spuštění (Docker Compose)
 
-## Rychlé spuštění
+1. Spusť v root složce projektu:
+   
+   docker-compose up --build
 
-```bash
-npm install
-npm start
-# běží na http://localhost:5000
-```
-Proměnné (volitelné):
-- `PORT` (default 5000)
-- `DATA_DIR` (default `./uploads`)
-- `MAX_UPLOAD_BYTES` (default 10485760)
+2. Otevři prohlížeč na http://localhost:5000
 
-## API
-- `GET /api/share-id` – vygeneruje náhodný share-id.
-- `GET /api/:shareId` – vrátí seznam textů a souborů.
-- `POST /api/:shareId/text` – `{ text }` uloží text.
-- `POST /api/:shareId/files` – multipart `files` (max 5 souborů, limit dle `MAX_UPLOAD_BYTES`).
-- `GET /api/:shareId/files/:fileName` – stáhne soubor.
-- Frontend: `/share/:shareId` nebo `/` + pole na zadání ID.
+## Kubernetes nasazení
 
-## Docker
-```bash
-docker build -t share-id:latest .
-docker run -p 5000:5000 -v $(pwd)/uploads:/app/uploads share-id:latest
-```
+1. Postav image a nahraj na Docker Hub (nezapomeň změnit image v k8s-deployment.yaml):
+   
+   docker build -t yourdockerhub/share-app:latest ./app
+   docker push yourdockerhub/share-app:latest
 
-## Kubernetes (manuálně)
-Uprav v [k8s/deployment.yaml](k8s/deployment.yaml) image `ghcr.io/your-org/share-id:latest`, poté:
-```bash
-kubectl apply -f k8s/deployment.yaml
-kubectl port-forward svc/share-id 8080:80
-```
+2. V Kubernetes nasad:
+   
+   kubectl apply -f uploads-pvc.yaml
+   kubectl apply -f k8s-deployment.yaml
 
-## GitHub Actions + GHCR
-Workflow [.github/workflows/ci.yml](.github/workflows/ci.yml) buildí image `ghcr.io/<owner>/<repo>/share-id:latest` a při push ho publikuje do GHCR (potřebuje `GITHUB_TOKEN`).
+3. Přístup na NodePort 30050 (např. http://<node-ip>:30050)
 
-## Poznámky
-- Úložiště je na FS (`DATA_DIR`). V K8s je použité `emptyDir`; pro trvalá data nahraď PersistentVolumeClaim.
-- Žádná autentizace – share-id není bezpečnostní ochrana. Pro produkci přidej auth/rate-limit/HTTPS.
+## Funkce
+- Upload/download souborů, textu, obrázků přes share-id
+- Share-id lze zadat nebo se vygeneruje
+- Seznam souborů/textu pro share-id
+

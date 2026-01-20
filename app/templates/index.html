@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>Jednoduché sdílení souborů</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #181c24;
+            color: #e0e6ef;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 2em auto;
+            background: #232936;
+            border-radius: 14px;
+            box-shadow: 0 4px 24px #0006;
+            padding: 2em;
+        }
+        input, button, textarea {
+            width: 100%;
+            margin: 0.5em 0;
+            padding: 0.5em;
+            border-radius: 7px;
+            border: 1px solid #374151;
+            background: #181c24;
+            color: #e0e6ef;
+            font-size: 1em;
+        }
+        input:focus, textarea:focus {
+            outline: 2px solid #1976d2;
+            background: #232936;
+        }
+        button {
+            background: linear-gradient(90deg, #1976d2 60%, #0d47a1 100%);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 2px 8px #0002;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #1565c0 60%, #0d47a1 100%);
+            transform: translateY(-2px) scale(1.03);
+        }
+        .file-list {
+            margin-top: 1em;
+        }
+        .share-id-box {
+            background: #232936;
+            color: #90caf9;
+            border: 1px solid #1976d2;
+            border-radius: 7px;
+            padding: 0.7em 0.7em 0.7em 1em;
+            margin: 1em 0;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 2px 8px #0002;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1em;
+        }
+        .copy-btn {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 0.3em 0.8em;
+            margin-left: 0.5em;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .copy-btn:hover {
+            background: #1565c0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #232936;
+            border-radius: 5px;
+            margin: 0.5em 0 1em 0;
+            overflow: hidden;
+            box-shadow: 0 1px 4px #0002;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #1976d2 60%, #0d47a1 100%);
+            width: 0%;
+            transition: width 0.2s;
+        }
+        }
+        .content-box {
+            background: #232936;
+            border: 1px solid #374151;
+            border-radius: 7px;
+            padding: 1em;
+            margin-top: 1em;
+            min-height: 2em;
+            color: #e0e6ef;
+            font-size: 1.05em;
+        }
+        .file-link {
+            color: #90caf9;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .file-link:hover {
+            color: #fff;
+            background: #1976d2;
+            border-radius: 4px;
+            padding: 0 0.2em;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #374151;
+            margin: 2em 0;
+        }
+        ::selection {
+            background: #1976d2;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Jednoduché sdílení</h2>
+    <form id="uploadForm">
+        <label>Share ID (nebo nechte prázdné):
+            <input type="text" name="share_id" id="share_id">
+        </label>
+        <label>Text k odeslání:
+            <textarea name="text" id="text"></textarea>
+        </label>
+        <label>Soubor k odeslání:
+            <input type="file" name="file" id="file">
+        </label>
+        <button type="submit">Odeslat</button>
+    </form>
+    <div id="shareIdBox" class="share-id-box" style="display:none;"></div>
+    <div id="progressBar" class="progress-bar" style="display:none;">
+        <div id="progressBarInner" class="progress-bar-inner"></div>
+    </div>
+    <hr>
+    <label>Zobrazit obsah pro Share ID:
+        <input type="text" id="list_share_id">
+        <button type="button" onclick="listFiles()">Zobrazit</button>
+    </label>
+    <div class="file-list" id="fileList"></div>
+    <div id="contentBox" class="content-box"></div>
+</div>
+<script>
+const form = document.getElementById('uploadForm');
+const shareIdBox = document.getElementById('shareIdBox');
+const contentBox = document.getElementById('contentBox');
+const progressBar = document.getElementById('progressBar');
+const progressBarInner = document.getElementById('progressBarInner');
+
+form.onsubmit = async (e) => {
+    e.preventDefault();
+    const shareId = document.getElementById('share_id').value.trim();
+    const text = document.getElementById('text').value.trim();
+    const fileInput = document.getElementById('file');
+    if (!text && (!fileInput.files || fileInput.files.length === 0)) {
+        shareIdBox.style.display = 'none';
+        shareIdBox.textContent = '';
+        alert('Vyplňte text nebo vyberte soubor!');
+        return;
+    }
+    const data = new FormData(form);
+    progressBar.style.display = 'block';
+    progressBarInner.style.width = '0%';
+    let result;
+    try {
+        result = await uploadWithProgress('/api/upload', data, progressBarInner);
+    } catch {
+        progressBar.style.display = 'none';
+        shareIdBox.style.display = 'none';
+        shareIdBox.textContent = '';
+        alert('Chyba serveru.');
+        return;
+    }
+    progressBar.style.display = 'none';
+    if (result.error) {
+        shareIdBox.style.display = 'none';
+        shareIdBox.textContent = '';
+        alert('Chyba: ' + result.error);
+    } else {
+        shareIdBox.innerHTML = `Share ID: <span id="shareIdText">${result.share_id}</span> <button class="copy-btn" onclick="copyShareId()">Kopírovat</button>`;
+        shareIdBox.style.display = 'flex';
+        document.getElementById('share_id').value = result.share_id;
+    }
+};
+
+async function uploadWithProgress(url, formData, progressBarInner) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                progressBarInner.style.width = percent + '%';
+            }
+        };
+        xhr.onload = function() {
+            try {
+                resolve(JSON.parse(xhr.responseText));
+            } catch {
+                reject();
+            }
+        };
+        xhr.onerror = function() { reject(); };
+        xhr.send(formData);
+    });
+}
+
+function copyShareId() {
+    const text = document.getElementById('shareIdText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Zkopírováno!';
+        setTimeout(() => { btn.textContent = 'Kopírovat'; }, 1200);
+    });
+}
+
+async function listFiles() {
+    const shareId = document.getElementById('list_share_id').value.trim();
+    if (!shareId) return;
+    const res = await fetch('/api/list/' + shareId);
+    const files = await res.json();
+    let html = '';
+    files.forEach(f => {
+        if (f === 'text.txt') {
+            html += `<div><span class="file-link" onclick="showContent('${shareId}','${f}')">Zobrazit text</span></div>`;
+        } else {
+            html += `<div><a class="file-link" href="/api/content/${shareId}/${f}" download>${f} (stáhnout)</a></div>`;
+        }
+    });
+    document.getElementById('fileList').innerHTML = html || 'Žádné soubory/text.';
+    contentBox.innerHTML = '';
+}
+
+async function showContent(shareId, filename) {
+    contentBox.innerHTML = 'Načítám...';
+    if (filename === 'text.txt') {
+        const res = await fetch(`/api/content/${shareId}/text.txt`);
+        const text = await res.text();
+        contentBox.innerHTML = `<pre style="white-space: pre-wrap; word-break: break-all;">${text}</pre>`;
+    } else {
+        contentBox.innerHTML = '';
+    }
+}
+</script>
+</body>
+</html>

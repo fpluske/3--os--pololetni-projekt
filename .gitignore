@@ -1,7 +1,14 @@
-node_modules
-npm-debug.log*
-dist
-*.log
+__pycache__/
+*.pyc
+uploads/
 .env
-.tmp
-uploads
+*.sqlite3
+*.db
+.DS_Store
+.idea/
+.vscode/
+*.log
+# docker
+*.pid
+# OS
+Thumbs.db

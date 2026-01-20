@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: share-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: share-app
+  template:
+    metadata:
+      labels:
+        app: share-app
+    spec:
+      containers:
+      - name: share-app
+        image: yourdockerhub/share-app:latest # Změň na svůj image
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/uploads
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: share-app
+spec:
+  type: NodePort
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30050
+  selector:
+    app: share-app
